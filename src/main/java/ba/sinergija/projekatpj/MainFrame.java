@@ -1,5 +1,6 @@
 package ba.sinergija.projekatpj;
 
+import java.awt.Toolkit;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -77,6 +78,7 @@ public class MainFrame extends javax.swing.JFrame {
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("Hemijska Čistionica");
+        setIconImage(Toolkit.getDefaultToolkit().getImage(getClass().getResource("wm.png")));
         setResizable(false);
 
         posaoTable.setModel(new javax.swing.table.DefaultTableModel(

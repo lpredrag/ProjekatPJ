@@ -101,25 +101,24 @@ public class LoginFrame extends javax.swing.JFrame {
             System.out.println("Hesiranje lozinke nije uspjelo.");
             return;
         }
-        ResultSet set = DatabaseQuery.getRadnikByUsername(username);
-        if (set == null) {
+        ResultSet radnik = DatabaseQuery.getRadnikByUsername(username);
+        if (radnik == null) {
             return;
-            //TODO
         }
         int id = 0;
         String imePrezime = "";
         String korisnickoIme = "";
         String databaseHashedPassword = "";
         try {
-            while (set.next()) {
-                id = set.getInt("id");
-                imePrezime = set.getString("ime_prezime");
-                korisnickoIme = set.getString("korisnicko_ime");
-                databaseHashedPassword = set.getString("lozinka");
+            while (radnik.next()) {
+                id = radnik.getInt("id");
+                imePrezime = radnik.getString("ime_prezime");
+                korisnickoIme = radnik.getString("korisnicko_ime");
+                databaseHashedPassword = radnik.getString("lozinka");
             }
-        } catch(SQLException exc) {
+        } catch(SQLException exception) {
+            Logger.getLogger(DatabaseQuery.class.getName()).log(SEVERE, null, exception);
             return;
-            //TODO
         }
         
         if (hashedPassword.equals(databaseHashedPassword)) {
