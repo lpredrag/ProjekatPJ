@@ -2,6 +2,9 @@ package ba.sinergija.projekatpj;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import static java.util.logging.Level.SEVERE;
+import java.util.logging.Logger;
 
 public class InputFrame extends javax.swing.JFrame {
 
@@ -11,15 +14,15 @@ public class InputFrame extends javax.swing.JFrame {
     }
     
     private void fillComboBox() {
-        ResultSet set = DatabaseQuery.getUsluga();
+        ResultSet nazivi = DatabaseQuery.getUslugaNaziv();
         jComboBox1.removeAllItems();
         try {
-            while (set.next()) {
-                String naziv = set.getString("naziv");
+            while (nazivi.next()) {
+                String naziv = nazivi.getString("naziv");
                 jComboBox1.addItem(naziv);
             }
-        } catch (SQLException exc) {
-            // TODO
+        } catch (SQLException exception) {
+            Logger.getLogger(DatabaseQuery.class.getName()).log(SEVERE, null, exception);
         }
     }
 
@@ -31,7 +34,7 @@ public class InputFrame extends javax.swing.JFrame {
         jLabel1 = new javax.swing.JLabel();
         jLabel2 = new javax.swing.JLabel();
         jTextField1 = new javax.swing.JTextField();
-        jButton1 = new javax.swing.JButton();
+        gotovoButton = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setAlwaysOnTop(true);
@@ -43,10 +46,10 @@ public class InputFrame extends javax.swing.JFrame {
 
         jLabel2.setText("Ime i prezime:");
 
-        jButton1.setText("Gotovo");
-        jButton1.addActionListener(new java.awt.event.ActionListener() {
+        gotovoButton.setText("Gotovo");
+        gotovoButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton1ActionPerformed(evt);
+                gotovoButtonActionPerformed(evt);
             }
         });
 
@@ -63,7 +66,7 @@ public class InputFrame extends javax.swing.JFrame {
                     .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 175, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addGroup(layout.createSequentialGroup()
                         .addGap(48, 48, 48)
-                        .addComponent(jButton1)))
+                        .addComponent(gotovoButton)))
                 .addContainerGap(115, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
@@ -78,7 +81,7 @@ public class InputFrame extends javax.swing.JFrame {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(33, 33, 33)
-                .addComponent(jButton1)
+                .addComponent(gotovoButton)
                 .addContainerGap(77, Short.MAX_VALUE))
         );
 
@@ -86,13 +89,67 @@ public class InputFrame extends javax.swing.JFrame {
         setLocationRelativeTo(null);
     }// </editor-fold>//GEN-END:initComponents
 
-    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_jButton1ActionPerformed
+    private void gotovoButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_gotovoButtonActionPerformed
+        try {
+            String selectedUslugaNaziv = (String) jComboBox1.getSelectedItem();
+            if (selectedUslugaNaziv.isEmpty()) {
+                return;
+            }
+
+            ResultSet uslugaIds = DatabaseQuery.getUslugaIdByNaziv(selectedUslugaNaziv);
+            if (uslugaIds == null) {
+                return;
+            }
+
+            int uslugaId = 0;
+            while (uslugaIds.next()) {
+                uslugaId = uslugaIds.getInt("id");
+            }
+            if (uslugaId == 0) {
+                return;
+            }
+            
+            int radnikId = LoginFrame.currentRadnik.getId();
+            
+            Timestamp datumVrijeme = new Timestamp(System.currentTimeMillis());
+
+            String imePrezime = jTextField1.getText();
+            if (imePrezime.isEmpty()) {
+                return;
+            }
+
+            ResultSet klijentIds = DatabaseQuery.getKlijentIdByImePrezime(imePrezime);
+            if (klijentIds == null) {
+                return;
+            }
+
+            int klijentId = 0;
+            while (klijentIds.next()) {
+                klijentId = klijentIds.getInt("id");
+            }
+            if (klijentId == 0) {
+                int newKlijentId = DatabaseQuery.insertKlijent(imePrezime);
+                if (newKlijentId == 0) {
+                    return;
+                }
+                DatabaseQuery.insertPosao(datumVrijeme, radnikId, uslugaId, newKlijentId);
+                this.dispose();
+                
+            } else {
+                DatabaseQuery.updateKlijentPoslovi(klijentId);
+                DatabaseQuery.insertPosao(datumVrijeme, radnikId, uslugaId, klijentId);
+                this.dispose();
+            }
+            
+        } catch (SQLException exception) {
+            Logger.getLogger(DatabaseQuery.class.getName()).log(SEVERE, null, exception);
+        }
+        
+    }//GEN-LAST:event_gotovoButtonActionPerformed
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton jButton1;
+    private javax.swing.JButton gotovoButton;
     private javax.swing.JComboBox<String> jComboBox1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;

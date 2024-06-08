@@ -3,11 +3,15 @@ package ba.sinergija.projekatpj;
 import java.awt.Toolkit;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import static java.util.logging.Level.SEVERE;
 import java.util.logging.Logger;
 import javax.swing.JOptionPane;
 
 public class LoginFrame extends javax.swing.JFrame {
+    
+    public static Radnik currentRadnik;
 
     public LoginFrame() {
         initComponents();
@@ -82,11 +86,11 @@ public class LoginFrame extends javax.swing.JFrame {
         String username = usernameField.getText();
         char[] passwordArray = passwordField.getPassword();
         if (username.isEmpty() || passwordArray.length == 0) {
-            System.out.println("Missing input.");
+            System.out.println("Pogresan unos.");
             return;
         }
         if (username.length() > 50 || passwordArray.length > 128) {
-            System.out.println("Input too long.");
+            System.out.println("Unos predugacak.");
             inputError();
             return;
         }
@@ -94,17 +98,33 @@ public class LoginFrame extends javax.swing.JFrame {
         
         String hashedPassword = DatabaseQuery.hashPasswordSHA256(password);
         if (hashedPassword == null) {
-            System.out.println("Failed to hash password.");
+            System.out.println("Hesiranje lozinke nije uspjelo.");
             return;
+        }
+        ResultSet set = DatabaseQuery.getRadnikByUsername(username);
+        if (set == null) {
+            return;
+            //TODO
+        }
+        int id = 0;
+        String imePrezime = "";
+        String korisnickoIme = "";
+        String databaseHashedPassword = "";
+        try {
+            while (set.next()) {
+                id = set.getInt("id");
+                imePrezime = set.getString("ime_prezime");
+                korisnickoIme = set.getString("korisnicko_ime");
+                databaseHashedPassword = set.getString("lozinka");
+            }
+        } catch(SQLException exc) {
+            return;
+            //TODO
         }
         
-        String databaseHashedPassword = DatabaseQuery.getPasswordByUsername(username);
-        if (databaseHashedPassword == null) {
-            inputError();
-            return;
-        }
         if (hashedPassword.equals(databaseHashedPassword)) {
-            System.out.println("Login successful.");
+            System.out.println("Prijava uspjesna.");
+            currentRadnik = new Radnik(id, imePrezime, korisnickoIme);
             MainFrame newFrame = new MainFrame();
             newFrame.setVisible(true);
             newFrame.addWindowListener(new WindowAdapter() {

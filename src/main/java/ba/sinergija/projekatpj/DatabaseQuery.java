@@ -7,6 +7,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import static java.util.logging.Level.SEVERE;
 import java.util.logging.Logger;
 
@@ -28,82 +29,115 @@ public class DatabaseQuery {
             }
             return hexString.toString();
         } catch(NoSuchAlgorithmException exception) {
-            Logger.getLogger(DatabaseQuery.class.getName()).log(SEVERE, "SHA256 is not available", exception);
+            Logger.getLogger(DatabaseQuery.class.getName()).log(SEVERE, "SHA256 nije dostupan", exception);
             return null;
         }
     }
     
-    public static String getPasswordByUsername(String username) {
+    public static ResultSet getRadnikByUsername(String username) {
         try {
-            String query = "SELECT lozinka FROM radnik WHERE korisnicko_ime = ?";
+            String query = "select * from radnik where korisnicko_ime = ?";
             PreparedStatement statement = db.getConnection().prepareStatement(query);
             statement.setString(1, username);
             ResultSet rs = statement.executeQuery();
-            String hashedPassword = null;
-            if (rs.next()) {
-                hashedPassword = rs.getString("lozinka");
-            }
-            return hashedPassword;
+            return rs;
         } catch (SQLException exception) {
-            Logger.getLogger(DatabaseQuery.class.getName()).log(SEVERE, "Failed to query database", exception);
+            Logger.getLogger(DatabaseQuery.class.getName()).log(SEVERE, null, exception);
             return null;
         }
     }
     
-    public static ResultSet getUsluga() {
+    public static ResultSet getUslugaNaziv() {
         try {
             Statement statement = db.getConnection().createStatement();
-            ResultSet resSet = statement.executeQuery("select * from usluga");
+            ResultSet resSet = statement.executeQuery("select naziv from usluga");
             return resSet;
         } catch (SQLException exception) {
-            Logger.getLogger(DatabaseQuery.class.getName()).log(SEVERE, "Failed to query database", exception);
+            Logger.getLogger(DatabaseQuery.class.getName()).log(SEVERE, null, exception);
+            return null;
+        }
+    }
+    
+    public static ResultSet getUslugaIdByNaziv(String naziv) {
+        try {
+            String query = "select id from usluga where naziv = ?";
+            PreparedStatement statement = db.getConnection().prepareStatement(query);
+            statement.setString(1, naziv);
+            ResultSet resSet = statement.executeQuery();
+            return resSet;
+        } catch (SQLException exception) {
+            Logger.getLogger(DatabaseQuery.class.getName()).log(SEVERE, null, exception);
+            return null;
+        }
+    }
+    
+    public static ResultSet getKlijentIdByImePrezime(String imePrezime) {
+        try {
+            String query = "select id from klijent where ime_prezime = ?";
+            PreparedStatement statement = db.getConnection().prepareStatement(query);
+            statement.setString(1, imePrezime);
+            ResultSet resSet = statement.executeQuery();
+            return resSet;
+        } catch (SQLException exception) {
+            Logger.getLogger(DatabaseQuery.class.getName()).log(SEVERE, null, exception);
+            return null;
+        }
+    }
+    
+    public static void updateKlijentPoslovi(int klijentId) {
+        try {
+            String query = "update klijent set poslovi = poslovi + 1 where id = ?";
+            PreparedStatement statement = db.getConnection().prepareStatement(query);
+            statement.setInt(1, klijentId);
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            Logger.getLogger(DatabaseQuery.class.getName()).log(SEVERE, null, exception);
+        }
+    }
+    
+    public static int insertKlijent(String imePrezime) {
+        try {
+            String query = "insert into klijent(ime_prezime, poslovi) values(?,?)";
+            PreparedStatement statement = db.getConnection().prepareStatement(query, PreparedStatement.RETURN_GENERATED_KEYS);
+            statement.setString(1, imePrezime);
+            statement.setInt(2, 1);
+            statement.executeUpdate();
+            ResultSet resSet = statement.getGeneratedKeys();
+            resSet.next();
+            return resSet.getInt(1);
+        } catch (SQLException exception) {
+            Logger.getLogger(DatabaseQuery.class.getName()).log(SEVERE, null, exception);
+            return 0;
+        }
+    }
+    
+    public static void insertPosao(Timestamp datumVrijeme, int radnikId, int uslugaId, int klijentId) {
+        try {
+            String query = "insert into posao(datum_vrijeme, radnik_id, usluga_id, klijent_id) values(?,?,?,?)";
+            PreparedStatement statement = db.getConnection().prepareStatement(query);
+            statement.setTimestamp(1, datumVrijeme);
+            statement.setInt(2, radnikId);
+            statement.setInt(3, uslugaId);
+            statement.setInt(4, klijentId);
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            Logger.getLogger(DatabaseQuery.class.getName()).log(SEVERE, null, exception);
+        }
+    }
+    
+    public static ResultSet getPosao(int offset) {
+        try {
+            String query = "select * from posao where gotovo = 0 limit 50 offset ?";
+            PreparedStatement statement = db.getConnection().prepareStatement(query);
+            statement.setInt(1, offset);
+            ResultSet resSet = statement.executeQuery();
+            return resSet;
+        } catch (SQLException exception) {
+            Logger.getLogger(DatabaseQuery.class.getName()).log(SEVERE, null, exception);
             return null;
         }
     }
     /*
-    public static void getKlijent() {
-        try {
-            Statement statement = db.getConnection().createStatement();
-            ResultSet resSet = statement.executeQuery("select * from klijent");
-            while (resSet.next()) {
-                int id = resSet.getInt("id");
-                String ime = resSet.getString("ime");
-                String prezime = resSet.getString("prezime");
-                new Klijent(id, ime, prezime);
-            }
-        } catch (SQLException exception) {
-            Logger.getLogger(DatabaseQuery.class.getName()).log(SEVERE, "Failed to query database", exception);
-        }
-    }
-    
-    public static void getRadnik() {
-        try {
-            Statement statement = db.getConnection().createStatement();
-            ResultSet resSet = statement.executeQuery("select * from radnik");
-            while (resSet.next()) {
-                int id = resSet.getInt("id");
-                String ime = resSet.getString("ime");
-                String prezime = resSet.getString("prezime");
-                String korisnickoIme = resSet.getString("korisnicko_ime");
-                new Radnik(id, ime, prezime, korisnickoIme);
-            }
-        } catch (SQLException exception) {
-            Logger.getLogger(DatabaseQuery.class.getName()).log(SEVERE, "Failed to query database", exception);
-        }
-    }
-    */
-    public static ResultSet getPosao(int offset) {
-        try {
-            String query = "select * from posao where gotovo = 0 limit 50 offset " + String.valueOf(offset);
-            Statement statement = db.getConnection().createStatement();
-            ResultSet resSet = statement.executeQuery(query);
-            return resSet;
-        } catch (SQLException exception) {
-            Logger.getLogger(DatabaseQuery.class.getName()).log(SEVERE, "Failed to query database", exception);
-            return null;
-        }
-    }
-    
     public static ResultSet getAllPosao(int offset) {
         try {
             String query = "select * from posao limit 50 offset " + String.valueOf(offset);
@@ -111,56 +145,72 @@ public class DatabaseQuery {
             ResultSet resSet = statement.executeQuery(query);
             return resSet;
         } catch (SQLException exception) {
-            Logger.getLogger(DatabaseQuery.class.getName()).log(SEVERE, "Failed to query database", exception);
+            Logger.getLogger(DatabaseQuery.class.getName()).log(SEVERE, null, exception);
             return null;
         }
     }
-    
-    public static String getRadnikById(int id) {
+    */
+    public static String getRadnikImePrezimeById(int id) {
         try {
-            String query = "select * from radnik where id = " + String.valueOf(id);
-            Statement statement = db.getConnection().createStatement();
-            ResultSet resSet = statement.executeQuery(query);
+            String query = "select ime_prezime from radnik where id = ?";
+            PreparedStatement statement = db.getConnection().prepareStatement(query);
+            statement.setInt(1, id);
+            ResultSet resSet = statement.executeQuery();
             while (resSet.next()) {
-                String imePrezime = resSet.getString("ime") + " " + resSet.getString("prezime");
+                String imePrezime = resSet.getString("ime_prezime");
                 return imePrezime;
             }
             return null;
         } catch (SQLException exception) {
-            Logger.getLogger(DatabaseQuery.class.getName()).log(SEVERE, "Failed to query database", exception);
+            Logger.getLogger(DatabaseQuery.class.getName()).log(SEVERE, null, exception);
             return null;
         }
     }
     
-    public static String getUslugaById(int id) {
+    public static String[] getUslugaNazivById(int id) {
         try {
-            String query = "select * from usluga where id = " + String.valueOf(id);
-            Statement statement = db.getConnection().createStatement();
-            ResultSet resSet = statement.executeQuery(query);
+            String query = "select * from usluga where id = ?";
+            PreparedStatement statement = db.getConnection().prepareStatement(query);
+            statement.setInt(1, id);
+            ResultSet resSet = statement.executeQuery();
             while (resSet.next()) {
                 String naziv = resSet.getString("naziv");
-                return naziv;
+                String cijena = String.valueOf(resSet.getInt("cijena"));
+                String result[] = {naziv, cijena};
+                return result;
             }
             return null;
         } catch (SQLException exception) {
-            Logger.getLogger(DatabaseQuery.class.getName()).log(SEVERE, "Failed to query database", exception);
+            Logger.getLogger(DatabaseQuery.class.getName()).log(SEVERE, null, exception);
             return null;
         }
     }
     
-    public static String getKlijentById(int id) {
+    public static String getKlijentImePrezimeById(int id) {
         try {
-            String query = "select * from klijent where id = " + String.valueOf(id);
-            Statement statement = db.getConnection().createStatement();
-            ResultSet resSet = statement.executeQuery(query);
+            String query = "select * from klijent where id = ?";
+            PreparedStatement statement = db.getConnection().prepareStatement(query);
+            statement.setInt(1, id);
+            ResultSet resSet = statement.executeQuery();
             while (resSet.next()) {
-                String imePrezime = resSet.getString("ime") + " " + resSet.getString("prezime");
+                String imePrezime = resSet.getString("ime_prezime");
                 return imePrezime;
             }
             return null;
         } catch (SQLException exception) {
-            Logger.getLogger(DatabaseQuery.class.getName()).log(SEVERE, "Failed to query database", exception);
+            Logger.getLogger(DatabaseQuery.class.getName()).log(SEVERE, null, exception);
             return null;
+        }
+    }
+    
+    public static void updatePosaoGotovo(int id) {
+        try {
+            String query = "update posao set gotovo = true where id = ?";
+            PreparedStatement statement = db.getConnection().prepareStatement(query);
+            statement.setInt(1, id);
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            Logger.getLogger(DatabaseQuery.class.getName()).log(SEVERE, null, exception);
         }
     }
     
