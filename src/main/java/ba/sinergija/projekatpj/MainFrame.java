@@ -1,11 +1,15 @@
 package ba.sinergija.projekatpj;
 
 import java.awt.Toolkit;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import static java.util.logging.Level.SEVERE;
 import java.util.logging.Logger;
+import javax.swing.JLabel;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
 public class MainFrame extends javax.swing.JFrame {
@@ -15,6 +19,7 @@ public class MainFrame extends javax.swing.JFrame {
     public MainFrame() {
         initComponents();
         loadPoslovi();
+        loadCjenovnik();
     }
     
     private void loadPoslovi() {
@@ -45,7 +50,12 @@ public class MainFrame extends javax.swing.JFrame {
                     return;
                 }
                 String nazivUsluge = uslugaCijena[0];
-                String cijena = uslugaCijena[1];
+                int cijena = Integer.parseInt(uslugaCijena[1]);
+                
+                boolean popust = poslovi.getBoolean("popust");
+                if (popust == true) {
+                    cijena = cijena / 2;
+                }
                 
                 int klijentId = poslovi.getInt("klijent_id");
                 String imePrezimeKlijent = DatabaseQuery.getKlijentImePrezimeById(klijentId);
@@ -53,8 +63,32 @@ public class MainFrame extends javax.swing.JFrame {
                     return;
                 }
                 
-                String posao[] = {String.valueOf(id), datumVrijeme.toString(), nazivUsluge, cijena, imePrezimeKlijent, imePrezimeRadnik};
+                String posao[] = {String.valueOf(id), datumVrijeme.toString(), nazivUsluge, String.valueOf(cijena), imePrezimeKlijent, imePrezimeRadnik};
                 tableModel.addRow(posao);
+            }
+        } catch (SQLException exception) {
+            Logger.getLogger(DatabaseQuery.class.getName()).log(SEVERE, null, exception);
+        }
+    }
+    
+    private void loadCjenovnik() {
+        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+        centerRenderer.setHorizontalAlignment(JLabel.CENTER);
+        //cjenovnikTable.getColumnModel().getColumn(0).setCellRenderer(centerRenderer);
+        cjenovnikTable.getColumnModel().getColumn(1).setCellRenderer(centerRenderer);
+        
+        DefaultTableModel tableModel = (DefaultTableModel)cjenovnikTable.getModel();
+        tableModel.setRowCount(0);
+        ResultSet usluge = DatabaseQuery.getUsluga();
+        if (usluge == null) {
+            return;
+        }
+        try {
+            while (usluge.next()) {
+                String naziv = usluge.getString("naziv");
+                String cijena = String.valueOf(usluge.getInt("cijena")) + " KM";
+                String usluga[] = {naziv, cijena};
+                tableModel.addRow(usluga);
             }
         } catch (SQLException exception) {
             Logger.getLogger(DatabaseQuery.class.getName()).log(SEVERE, null, exception);
@@ -74,12 +108,21 @@ public class MainFrame extends javax.swing.JFrame {
         noviPosaoButton = new javax.swing.JButton();
         osvjeziButton = new javax.swing.JButton();
         gotovoButton = new javax.swing.JButton();
-        jPanel2 = new javax.swing.JPanel();
+        cjenovnikPanel = new javax.swing.JPanel();
+        jScrollPane2 = new javax.swing.JScrollPane();
+        cjenovnikTable = new javax.swing.JTable();
+        uslugaButton = new javax.swing.JButton();
+        jButton1 = new javax.swing.JButton();
+        adminPanel = new javax.swing.JPanel();
+        odjavaButton = new javax.swing.JButton();
+        dodajRadnikaButton = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("Hemijska Čistionica");
         setIconImage(Toolkit.getDefaultToolkit().getImage(getClass().getResource("wm.png")));
         setResizable(false);
+
+        posloviPanel.setBackground(new java.awt.Color(178, 209, 255));
 
         posaoTable.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
@@ -183,18 +226,117 @@ public class MainFrame extends javax.swing.JFrame {
 
         jTabbedPane1.addTab("Poslovi", posloviPanel);
 
-        javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
-        jPanel2.setLayout(jPanel2Layout);
-        jPanel2Layout.setHorizontalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 795, Short.MAX_VALUE)
+        cjenovnikPanel.setBackground(new java.awt.Color(178, 209, 255));
+
+        cjenovnikTable.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        cjenovnikTable.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+                {null, null},
+                {null, null},
+                {null, null},
+                {null, null}
+            },
+            new String [] {
+                "Usluga", "Cijena"
+            }
+        ) {
+            Class[] types = new Class [] {
+                java.lang.String.class, java.lang.String.class
+            };
+            boolean[] canEdit = new boolean [] {
+                false, false
+            };
+
+            public Class getColumnClass(int columnIndex) {
+                return types [columnIndex];
+            }
+
+            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                return canEdit [columnIndex];
+            }
+        });
+        jScrollPane2.setViewportView(cjenovnikTable);
+
+        uslugaButton.setText("Dodaj uslugu");
+        uslugaButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                uslugaButtonActionPerformed(evt);
+            }
+        });
+
+        jButton1.setText("Osvježi");
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
+            }
+        });
+
+        javax.swing.GroupLayout cjenovnikPanelLayout = new javax.swing.GroupLayout(cjenovnikPanel);
+        cjenovnikPanel.setLayout(cjenovnikPanelLayout);
+        cjenovnikPanelLayout.setHorizontalGroup(
+            cjenovnikPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(cjenovnikPanelLayout.createSequentialGroup()
+                .addGap(28, 28, 28)
+                .addGroup(cjenovnikPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addGroup(cjenovnikPanelLayout.createSequentialGroup()
+                        .addComponent(uslugaButton)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(jButton1))
+                    .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 736, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap(31, Short.MAX_VALUE))
         );
-        jPanel2Layout.setVerticalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 572, Short.MAX_VALUE)
+        cjenovnikPanelLayout.setVerticalGroup(
+            cjenovnikPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(cjenovnikPanelLayout.createSequentialGroup()
+                .addGap(20, 20, 20)
+                .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 500, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGroup(cjenovnikPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(uslugaButton)
+                    .addComponent(jButton1))
+                .addContainerGap(18, Short.MAX_VALUE))
         );
 
-        jTabbedPane1.addTab("tab2", jPanel2);
+        jTabbedPane1.addTab("Cjenovnik", cjenovnikPanel);
+
+        adminPanel.setBackground(new java.awt.Color(178, 209, 255));
+
+        odjavaButton.setText("Odjavi se");
+        odjavaButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                odjavaButtonActionPerformed(evt);
+            }
+        });
+
+        dodajRadnikaButton.setText("Dodaj radnika");
+        dodajRadnikaButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                dodajRadnikaButtonActionPerformed(evt);
+            }
+        });
+
+        javax.swing.GroupLayout adminPanelLayout = new javax.swing.GroupLayout(adminPanel);
+        adminPanel.setLayout(adminPanelLayout);
+        adminPanelLayout.setHorizontalGroup(
+            adminPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(adminPanelLayout.createSequentialGroup()
+                .addGap(39, 39, 39)
+                .addGroup(adminPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(dodajRadnikaButton)
+                    .addComponent(odjavaButton))
+                .addContainerGap(657, Short.MAX_VALUE))
+        );
+        adminPanelLayout.setVerticalGroup(
+            adminPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(adminPanelLayout.createSequentialGroup()
+                .addGap(34, 34, 34)
+                .addComponent(odjavaButton)
+                .addGap(38, 38, 38)
+                .addComponent(dodajRadnikaButton)
+                .addContainerGap(454, Short.MAX_VALUE))
+        );
+
+        jTabbedPane1.addTab("Administracija", adminPanel);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -234,6 +376,9 @@ public class MainFrame extends javax.swing.JFrame {
     }//GEN-LAST:event_osvjeziButtonActionPerformed
 
     private void gotovoButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_gotovoButtonActionPerformed
+        if (posaoTable.getSelectedRowCount() == 0) {
+            return;
+        }
         int row = posaoTable.getSelectedRow();
         int index = posaoTable.getColumnModel().getColumnIndex("ID");
         int id = Integer.parseInt((String) posaoTable.getValueAt(row, index));
@@ -241,16 +386,51 @@ public class MainFrame extends javax.swing.JFrame {
         loadPoslovi();
     }//GEN-LAST:event_gotovoButtonActionPerformed
 
+    private void odjavaButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_odjavaButtonActionPerformed
+        //DatabaseQuery.db.disconnect();
+        LoginFrame.currentRadnik = null;
+        LoginFrame newFrame = new LoginFrame();
+        newFrame.setVisible(true);
+        newFrame.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                DatabaseQuery.db.disconnect();
+            }
+        });
+        this.dispose();
+    }//GEN-LAST:event_odjavaButtonActionPerformed
+
+    private void dodajRadnikaButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_dodajRadnikaButtonActionPerformed
+        RadnikFrame frame = new RadnikFrame();
+        frame.setVisible(true);
+    }//GEN-LAST:event_dodajRadnikaButtonActionPerformed
+
+    private void uslugaButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_uslugaButtonActionPerformed
+        UslugaFrame frame = new UslugaFrame();
+        frame.setVisible(true);
+    }//GEN-LAST:event_uslugaButtonActionPerformed
+
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        loadCjenovnik();
+    }//GEN-LAST:event_jButton1ActionPerformed
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JPanel adminPanel;
+    private javax.swing.JPanel cjenovnikPanel;
+    private javax.swing.JTable cjenovnikTable;
+    private javax.swing.JButton dodajRadnikaButton;
     private javax.swing.JButton gotovoButton;
-    private javax.swing.JPanel jPanel2;
+    private javax.swing.JButton jButton1;
     private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JTabbedPane jTabbedPane1;
     private javax.swing.JButton noviPosaoButton;
+    private javax.swing.JButton odjavaButton;
     private javax.swing.JButton osvjeziButton;
     private javax.swing.JTable posaoTable;
     private javax.swing.JPanel posloviPanel;
     private javax.swing.JButton prethodnaButton;
     private javax.swing.JButton sljedecaButton;
+    private javax.swing.JButton uslugaButton;
     // End of variables declaration//GEN-END:variables
 }

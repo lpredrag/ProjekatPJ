@@ -47,6 +47,19 @@ public class DatabaseQuery {
         }
     }
     
+    public static void insertRadnik(String imePrezime, String username, String password) {
+        try {
+            String query = "insert into radnik(ime_prezime, korisnicko_ime, lozinka) values(?,?,?)";
+            PreparedStatement statement = db.getConnection().prepareStatement(query);
+            statement.setString(1, imePrezime);
+            statement.setString(2, username);
+            statement.setString(3, password);
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            Logger.getLogger(DatabaseQuery.class.getName()).log(SEVERE, null, exception);
+        }
+    }
+    
     public static ResultSet getUslugaNaziv() {
         try {
             Statement statement = db.getConnection().createStatement();
@@ -71,9 +84,9 @@ public class DatabaseQuery {
         }
     }
     
-    public static ResultSet getKlijentIdByImePrezime(String imePrezime) {
+    public static ResultSet getKlijentByImePrezime(String imePrezime) {
         try {
-            String query = "select id from klijent where ime_prezime = ?";
+            String query = "select * from klijent where ime_prezime = ?";
             PreparedStatement statement = db.getConnection().prepareStatement(query);
             statement.setString(1, imePrezime);
             ResultSet resSet = statement.executeQuery();
@@ -111,14 +124,15 @@ public class DatabaseQuery {
         }
     }
     
-    public static void insertPosao(Timestamp datumVrijeme, int radnikId, int uslugaId, int klijentId) {
+    public static void insertPosao(Timestamp datumVrijeme, int radnikId, int uslugaId, int klijentId, boolean popust) {
         try {
-            String query = "insert into posao(datum_vrijeme, radnik_id, usluga_id, klijent_id) values(?,?,?,?)";
+            String query = "insert into posao(datum_vrijeme, radnik_id, usluga_id, klijent_id, popust) values(?,?,?,?,?)";
             PreparedStatement statement = db.getConnection().prepareStatement(query);
             statement.setTimestamp(1, datumVrijeme);
             statement.setInt(2, radnikId);
             statement.setInt(3, uslugaId);
             statement.setInt(4, klijentId);
+            statement.setBoolean(5, popust);
             statement.executeUpdate();
         } catch (SQLException exception) {
             Logger.getLogger(DatabaseQuery.class.getName()).log(SEVERE, null, exception);
@@ -137,19 +151,7 @@ public class DatabaseQuery {
             return null;
         }
     }
-    /*
-    public static ResultSet getAllPosao(int offset) {
-        try {
-            String query = "select * from posao limit 50 offset " + String.valueOf(offset);
-            Statement statement = db.getConnection().createStatement();
-            ResultSet resSet = statement.executeQuery(query);
-            return resSet;
-        } catch (SQLException exception) {
-            Logger.getLogger(DatabaseQuery.class.getName()).log(SEVERE, null, exception);
-            return null;
-        }
-    }
-    */
+    
     public static String getRadnikImePrezimeById(int id) {
         try {
             String query = "select ime_prezime from radnik where id = ?";
@@ -183,6 +185,30 @@ public class DatabaseQuery {
         } catch (SQLException exception) {
             Logger.getLogger(DatabaseQuery.class.getName()).log(SEVERE, null, exception);
             return null;
+        }
+    }
+    
+    public static ResultSet getUsluga() {
+        try {
+            String query = "select * from usluga";
+            PreparedStatement statement = db.getConnection().prepareStatement(query);
+            ResultSet resSet = statement.executeQuery();
+            return resSet;
+        } catch (SQLException exception) {
+            Logger.getLogger(DatabaseQuery.class.getName()).log(SEVERE, null, exception);
+            return null;
+        }
+    }
+    
+    public static void insertUsluga(String naziv, String cijena) {
+        try {
+            String query = "insert into usluga(naziv, cijena) values(?,?)";
+            PreparedStatement statement = db.getConnection().prepareStatement(query);
+            statement.setString(1, naziv);
+            statement.setInt(2, Integer.parseInt(cijena));
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            Logger.getLogger(DatabaseQuery.class.getName()).log(SEVERE, null, exception);
         }
     }
     
